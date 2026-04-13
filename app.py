@@ -28,7 +28,7 @@ st.markdown("""
             color: #FFFFFF !important;
         }
 
-        /* DISEÑO DE CAMPOS DE ENTRADA (Fondo oscuro, borde dorado) */
+        /* DISEÑO DE CAMPOS DE ENTRADA */
         .stTextInput>div>div>input, .stTextArea>div>div>textarea {
             background-color: #002D20 !important;
             color: #FFFFFF !important;
@@ -36,7 +36,6 @@ st.markdown("""
             border-radius: 4px !important;
         }
         
-        /* Etiquetas de los campos resaltadas */
         label {
             font-weight: bold !important;
             text-transform: uppercase;
@@ -44,7 +43,6 @@ st.markdown("""
             letter-spacing: 1px;
         }
 
-        /* Botón Institucional Resaltado */
         .stButton>button {
             background-color: #D4AF37;
             color: #000000;
@@ -59,18 +57,15 @@ st.markdown("""
             color: #FFFFFF;
         }
 
-        /* Estilo para el Menú Desplegable (Selectbox) */
         .stSelectbox div[data-baseweb="select"] {
             background-color: #1A1A1A !important;
             color: #FFFFFF !important;
         }
         
-        /* Estilo para las métricas */
         [data-testid="stMetricValue"] {
             color: #D4AF37 !important;
         }
 
-        /* Estilo para el Footer (Letras pequeñas) */
         .footer {
             position: fixed;
             left: 0;
@@ -85,13 +80,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. ENCABEZADO CORREGIDO ---
+# --- 3. ENCABEZADO ---
 col1, col2 = st.columns([1, 6])
 with col1:
     try:
         st.image("LogoCarabineros.png", width=110)
     except:
-        st.error("Archivo LogoCarabineros.png no encontrado en el repositorio.")
+        st.error("Archivo LogoCarabineros.png no encontrado.")
 
 with col2:
     st.title("VigilancIA Carabineros")
@@ -101,6 +96,10 @@ st.divider()
 
 # --- LÓGICA FUNCIONAL ---
 CLAVE_ADMIN = "MICC2026" 
+CARPETA_RESPALDOS = "respaldos"
+
+if not os.path.exists(CARPETA_RESPALDOS):
+    os.makedirs(CARPETA_RESPALDOS)
 
 def categorizar_con_ia(texto):
     texto = texto.lower()
@@ -118,12 +117,12 @@ def categorizar_con_ia(texto):
         if palabra in texto: return "4. BAJO"
     return "5. SIN CATEGORIZAR"
 
-def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, prioridad):
+def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, prioridad, ruta_foto):
     archivo = "datos_micc.csv"
     nuevo_registro = {
         "Nombre": [nombre], "Apellido": [apellido], "RUT": [rut],
         "Requerimiento": [descripcion], "Direccion": [direccion],
-        "Comuna": [comuna], "Prioridad_IA": [prioridad]
+        "Comuna": [comuna], "Prioridad_IA": [prioridad], "Foto_Evidencia": [ruta_foto]
     }
     df_nuevo = pd.DataFrame(nuevo_registro)
     if not os.path.isfile(archivo):
@@ -157,14 +156,25 @@ elif opcion == "Ingresar Requerimiento":
         
     direccion = st.text_input("Dirección / Intersección")
     descripcion = st.text_area("Relato del Requerimiento (Obligatorio)")
+    
+    # NUEVO: Campo para subir archivos
+    foto = st.file_uploader("Adjuntar Fotografía de Respaldo (Opcional)", type=["jpg", "png", "jpeg"])
         
     if st.button("PROCESAR REGISTRO"):
         if rut and descripcion:
+            ruta_foto_final = "Sin Registro"
+            if foto is not None:
+                ruta_foto_final = os.path.join(CARPETA_RESPALDOS, f"{rut}_{foto.name}")
+                with open(ruta_foto_final, "wb") as f:
+                    f.write(foto.getbuffer())
+            
             final_nombre = nombre if nombre else "S/N"
             final_apellido = apellido if apellido else "S/A"
             prioridad_detectada = categorizar_con_ia(descripcion)
-            guardar_datos(final_nombre, final_apellido, rut, descripcion, direccion, comuna, prioridad_detectada)
+            
+            guardar_datos(final_nombre, final_apellido, rut, descripcion, direccion, comuna, prioridad_detectada, ruta_foto_final)
             st.success(f"REGISTRO EXITOSO: {prioridad_detectada}")
+            if foto: st.info(f"Evidencia guardada como: {rut}_{foto.name}")
         else:
             st.error("ERROR: El RUT y el Relato son campos obligatorios.")
 
@@ -180,14 +190,17 @@ elif opcion == "Panel Administrativo MICC":
                 df = pd.read_csv("datos_micc.csv")
                 df_ordenado = df.sort_values(by="Prioridad_IA").reset_index(drop=True)
                 st.dataframe(df_ordenado, use_container_width=True)
+                
+                # NUEVO: Visualizador de imágenes para el Admin
+                st.write("### Visor de Evidencias Fotográficas")
+                for index, row in df_ordenado.iterrows():
+                    if row['Foto_Evidencia'] != "Sin Registro" and os.path.exists(row['Foto_Evidencia']):
+                        with st.expander(f"Ver evidencia: {row['Nombre']} {row['Apellido']} (RUT: {row['RUT']})"):
+                            st.image(row['Foto_Evidencia'], caption=f"Evidencia de {row['RUT']}")
             else:
                 st.info("Sin registros en la base de datos.")
         else:
-            st.error("Clave Incorrecta. Intente nuevamente.")
+            st.error("Clave Incorrecta.")
 
-# --- 4. FOOTER (FINES ACADÉMICOS) ---
-st.markdown("""
-    <div class="footer">
-        Esta App es desarrollada solo con fines academicos, y funciona como Beta
-    </div>
-""", unsafe_allow_html=True)
+# --- 4. FOOTER ---
+st.markdown('<div class="footer">Esta App es desarrollada solo con fines academicos, y funciona como Beta</div>', unsafe_allow_html=True)

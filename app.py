@@ -76,8 +76,14 @@ st.markdown("""
 col1, col2 = st.columns([1, 6])
 with col1:
     # Logo de Carabineros
-    url_logo = "https://raw.githubusercontent.com/ArtyMade/Tesis_VigilancIA/main/LogoCarabineros.png"
-    st.image(url_logo, width=110)
+    # --- 3. ENCABEZADO ---
+col1, col2 = st.columns([1, 6])
+with col1:
+    # Como la imagen ya está en la misma carpeta de GitHub, se llama así:
+    st.image("LogoCarabineros.png", width=110)
+with col2:
+    st.title("VigilancIA Carabineros")
+    st.subheader("Plataforma de Integración Comunitaria - Oficina MICC")
 with col2:
     st.title("VigilancIA Carabineros")
     st.subheader("Plataforma de Integración Comunitaria - Oficina MICC")

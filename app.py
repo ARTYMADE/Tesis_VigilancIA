@@ -75,18 +75,18 @@ st.markdown("""
 # --- 3. ENCABEZADO ---
 col1, col2 = st.columns([1, 6])
 with col1:
-    # Logo de Carabineros
     # --- 3. ENCABEZADO ---
 col1, col2 = st.columns([1, 6])
 with col1:
-    # Como la imagen ya está en la misma carpeta de GitHub, se llama así:
+    # Asegúrate de que esta línea tenga 4 espacios a la izquierda
     st.image("LogoCarabineros.png", width=110)
+
 with col2:
+    # Asegúrate de que estas líneas también tengan 4 espacios a la izquierda
     st.title("VigilancIA Carabineros")
     st.subheader("Plataforma de Integración Comunitaria - Oficina MICC")
-with col2:
-    st.title("VigilancIA Carabineros")
-    st.subheader("Plataforma de Integración Comunitaria - Oficina MICC")
+
+st.divider()
 
 st.divider()
 

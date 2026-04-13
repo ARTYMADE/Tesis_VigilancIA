@@ -162,7 +162,6 @@ elif opcion == "Ingresar Requerimiento":
         if rut and descripcion:
             final_nombre = nombre if nombre else "S/N"
             final_apellido = apellido if apellido else "S/A"
-            
             prioridad_detectada = categorizar_con_ia(descripcion)
             guardar_datos(final_nombre, final_apellido, rut, descripcion, direccion, comuna, prioridad_detectada)
             st.success(f"REGISTRO EXITOSO: {prioridad_detectada}")
@@ -172,17 +171,19 @@ elif opcion == "Ingresar Requerimiento":
 elif opcion == "Panel Administrativo MICC":
     st.write("### Mando Administrativo")
     password = st.text_input("Clave Institucional", type="password")
+    btn_acceso = st.button("INGRESAR AL PANEL")
     
-    if password == CLAVE_ADMIN:
-        st.success("AUTORIZADO")
-        if os.path.isfile("datos_micc.csv"):
-            df = pd.read_csv("datos_micc.csv")
-            df_ordenado = df.sort_values(by="Prioridad_IA").reset_index(drop=True)
-            st.dataframe(df_ordenado, use_container_width=True)
+    if btn_acceso:
+        if password == CLAVE_ADMIN:
+            st.success("ACCESO AUTORIZADO")
+            if os.path.isfile("datos_micc.csv"):
+                df = pd.read_csv("datos_micc.csv")
+                df_ordenado = df.sort_values(by="Prioridad_IA").reset_index(drop=True)
+                st.dataframe(df_ordenado, use_container_width=True)
+            else:
+                st.info("Sin registros en la base de datos.")
         else:
-            st.info("Sin registros.")
-    elif password != "":
-        st.error("Clave Incorrecta.")
+            st.error("Clave Incorrecta. Intente nuevamente.")
 
 # --- 4. FOOTER (FINES ACADÉMICOS) ---
 st.markdown("""

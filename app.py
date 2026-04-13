@@ -180,7 +180,7 @@ elif opcion == "Panel Administrativo MICC":
     password = st.text_input("Clave Institucional", type="password")
     if st.button("INGRESAR AL PANEL"):
         if password == CLAVE_ADMIN:
-            if os.path.isfile(ARCHIVO_CSV):
+            if os.path.exists(ARCHIVO_CSV):
                 try:
                     df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
                     df_ordenado = df.sort_values(by="Prioridad_IA").reset_index(drop=True)
@@ -196,7 +196,7 @@ elif opcion == "Panel Administrativo MICC":
                 except Exception as e:
                     st.error(f"Error crítico en base de datos: {e}")
             else:
-                st.info("Sin registros en la base de datos.")
+                st.info("No se encontró el archivo de base de datos. Ingrese un requerimiento primero.")
         else:
             st.error("Clave Incorrecta.")
 

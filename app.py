@@ -46,7 +46,7 @@ st.markdown("""
 
         /* Botón Institucional Resaltado */
         .stButton>button {
-            background-color: #D4AF37; /* Dorado para destacar en el fondo verde */
+            background-color: #D4AF37;
             color: #000000;
             font-weight: bold;
             border: none;
@@ -72,25 +72,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. ENCABEZADO ---
+# --- 3. ENCABEZADO CORREGIDO ---
+# Nota: Asegúrate de que el archivo "LogoCarabineros.png" esté subido a tu GitHub
 col1, col2 = st.columns([1, 6])
 with col1:
-    # --- 3. ENCABEZADO ---
-col1, col2 = st.columns([1, 6])
-with col1:
-    # Asegúrate de que esta línea tenga 4 espacios a la izquierda
-    st.image("LogoCarabineros.png", width=110)
+    try:
+        st.image("LogoCarabineros.png", width=110)
+    except:
+        st.error("Archivo LogoCarabineros.png no encontrado en el repositorio.")
 
 with col2:
-    # Asegúrate de que estas líneas también tengan 4 espacios a la izquierda
     st.title("VigilancIA Carabineros")
     st.subheader("Plataforma de Integración Comunitaria - Oficina MICC")
 
 st.divider()
 
-st.divider()
-
-# --- LÓGICA FUNCIONAL (MANTENIDA) ---
+# --- LÓGICA FUNCIONAL ---
 CLAVE_ADMIN = "MICC2026" 
 
 def categorizar_con_ia(texto):
@@ -166,7 +163,6 @@ elif opcion == "Panel Administrativo MICC":
         if os.path.isfile("datos_micc.csv"):
             df = pd.read_csv("datos_micc.csv")
             df_ordenado = df.sort_values(by="Prioridad_IA").reset_index(drop=True)
-            # Aplicamos estilo a la tabla para que se vea bien en fondo oscuro
             st.dataframe(df_ordenado, use_container_width=True)
         else:
             st.info("Sin registros.")

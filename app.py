@@ -69,6 +69,19 @@ st.markdown("""
         [data-testid="stMetricValue"] {
             color: #D4AF37 !important;
         }
+
+        /* Estilo para el Footer (Letras pequeñas) */
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: transparent;
+            color: #CCCCCC !important;
+            text-align: center;
+            font-size: 0.7em;
+            padding: 10px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -146,9 +159,7 @@ elif opcion == "Ingresar Requerimiento":
     descripcion = st.text_area("Relato del Requerimiento (Obligatorio)")
         
     if st.button("PROCESAR REGISTRO"):
-        # Solo el RUT y el Relato son estrictamente necesarios para el éxito de la operación
         if rut and descripcion:
-            # Si el usuario no ingresa nombre o apellido, se guardan como "S/N" (Sin Nombre) o "S/A" (Sin Apellido)
             final_nombre = nombre if nombre else "S/N"
             final_apellido = apellido if apellido else "S/A"
             
@@ -172,3 +183,10 @@ elif opcion == "Panel Administrativo MICC":
             st.info("Sin registros.")
     elif password != "":
         st.error("Clave Incorrecta.")
+
+# --- 4. FOOTER (FINES ACADÉMICOS) ---
+st.markdown("""
+    <div class="footer">
+        Esta App es desarrollada solo con fines academicos, y funciona como Beta
+    </div>
+""", unsafe_allow_html=True)

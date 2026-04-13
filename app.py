@@ -155,4 +155,4 @@ elif opcion == "Panel Administrativo MICC":
             st.error("Clave Incorrecta.")
 
 # --- 4. FOOTER ---
-st.markdown('<div class="footer">Esta App es desarrollada solo con fines academicos, y funciona como Beta</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">App desarrollada solo con fines academicos, y funciona como Beta</div>', unsafe_allow_html=True)

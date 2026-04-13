@@ -97,6 +97,7 @@ st.divider()
 # --- LÓGICA FUNCIONAL ---
 CLAVE_ADMIN = "MICC2026" 
 CARPETA_RESPALDOS = "respaldos"
+ARCHIVO_CSV = "datos_micc.csv"
 
 if not os.path.exists(CARPETA_RESPALDOS):
     os.makedirs(CARPETA_RESPALDOS)
@@ -118,17 +119,16 @@ def categorizar_con_ia(texto):
     return "5. SIN CATEGORIZAR"
 
 def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, prioridad, ruta_foto):
-    archivo = "datos_micc.csv"
     nuevo_registro = {
         "Nombre": [nombre], "Apellido": [apellido], "RUT": [rut],
         "Requerimiento": [descripcion], "Direccion": [direccion],
         "Comuna": [comuna], "Prioridad_IA": [prioridad], "Foto_Evidencia": [ruta_foto]
     }
     df_nuevo = pd.DataFrame(nuevo_registro)
-    if not os.path.isfile(archivo):
-        df_nuevo.to_csv(archivo, index=False, encoding="utf-8")
+    if not os.path.isfile(ARCHIVO_CSV):
+        df_nuevo.to_csv(ARCHIVO_CSV, index=False, encoding="utf-8")
     else:
-        df_nuevo.to_csv(archivo, mode='a', index=False, header=False, encoding="utf-8")
+        df_nuevo.to_csv(ARCHIVO_CSV, mode='a', index=False, header=False, encoding="utf-8")
 
 # --- INTERFAZ ---
 st.sidebar.markdown("<h2 style='color:#D4AF37; text-align:center;'>CONTROL MICC</h2>", unsafe_allow_html=True)
@@ -156,8 +156,6 @@ elif opcion == "Ingresar Requerimiento":
         
     direccion = st.text_input("Dirección / Intersección")
     descripcion = st.text_area("Relato del Requerimiento (Obligatorio)")
-    
-    # NUEVO: Campo para subir archivos
     foto = st.file_uploader("Adjuntar Fotografía de Respaldo (Opcional)", type=["jpg", "png", "jpeg"])
         
     if st.button("PROCESAR REGISTRO"):
@@ -171,32 +169,32 @@ elif opcion == "Ingresar Requerimiento":
             final_nombre = nombre if nombre else "S/N"
             final_apellido = apellido if apellido else "S/A"
             prioridad_detectada = categorizar_con_ia(descripcion)
-            
             guardar_datos(final_nombre, final_apellido, rut, descripcion, direccion, comuna, prioridad_detectada, ruta_foto_final)
             st.success(f"REGISTRO EXITOSO: {prioridad_detectada}")
-            if foto: st.info(f"Evidencia guardada como: {rut}_{foto.name}")
         else:
             st.error("ERROR: El RUT y el Relato son campos obligatorios.")
 
 elif opcion == "Panel Administrativo MICC":
     st.write("### Mando Administrativo")
     password = st.text_input("Clave Institucional", type="password")
-    btn_acceso = st.button("INGRESAR AL PANEL")
-    
-    if btn_acceso:
+    if st.button("INGRESAR AL PANEL"):
         if password == CLAVE_ADMIN:
-            st.success("ACCESO AUTORIZADO")
-            if os.path.isfile("datos_micc.csv"):
-                df = pd.read_csv("datos_micc.csv")
-                df_ordenado = df.sort_values(by="Prioridad_IA").reset_index(drop=True)
-                st.dataframe(df_ordenado, use_container_width=True)
-                
-                # NUEVO: Visualizador de imágenes para el Admin
-                st.write("### Visor de Evidencias Fotográficas")
-                for index, row in df_ordenado.iterrows():
-                    if row['Foto_Evidencia'] != "Sin Registro" and os.path.exists(row['Foto_Evidencia']):
-                        with st.expander(f"Ver evidencia: {row['Nombre']} {row['Apellido']} (RUT: {row['RUT']})"):
-                            st.image(row['Foto_Evidencia'], caption=f"Evidencia de {row['RUT']}")
+            if os.path.isfile(ARCHIVO_CSV):
+                try:
+                    # Solución al ParserError: Ignora líneas corruptas si las hay
+                    df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
+                    df_ordenado = df.sort_values(by="Prioridad_IA").reset_index(drop=True)
+                    st.dataframe(df_ordenado, use_container_width=True)
+                    
+                    st.write("### Visor de Evidencias Fotográficas")
+                    for index, row in df_ordenado.iterrows():
+                        # Verificamos si la columna existe en el CSV (por si es viejo)
+                        if 'Foto_Evidencia' in row and row['Foto_Evidencia'] != "Sin Registro":
+                            if os.path.exists(str(row['Foto_Evidencia'])):
+                                with st.expander(f"Evidencia: {row['Nombre']} (RUT: {row['RUT']})"):
+                                    st.image(row['Foto_Evidencia'])
+                except Exception as e:
+                    st.error(f"Error crítico en base de datos: {e}")
             else:
                 st.info("Sin registros en la base de datos.")
         else:

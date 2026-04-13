@@ -73,7 +73,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 3. ENCABEZADO CORREGIDO ---
-# Nota: Asegúrate de que el archivo "LogoCarabineros.png" esté subido a tu GitHub
 col1, col2 = st.columns([1, 6])
 with col1:
     try:
@@ -137,22 +136,27 @@ elif opcion == "Ingresar Requerimiento":
     st.write("### Formulario Institucional")
     c1, c2 = st.columns(2)
     with c1:
-        nombre = st.text_input("Nombres")
-        apellido = st.text_input("Apellidos")
+        nombre = st.text_input("Nombre (Opcional)")
+        apellido = st.text_input("Apellido (Opcional)")
     with c2:
-        rut = st.text_input("RUT")
+        rut = st.text_input("RUT (Obligatorio)")
         comuna = st.text_input("Comuna")
         
     direccion = st.text_input("Dirección / Intersección")
-    descripcion = st.text_area("Relato del Requerimiento")
+    descripcion = st.text_area("Relato del Requerimiento (Obligatorio)")
         
     if st.button("PROCESAR REGISTRO"):
-        if nombre and apellido and rut and descripcion:
+        # Solo el RUT y el Relato son estrictamente necesarios para el éxito de la operación
+        if rut and descripcion:
+            # Si el usuario no ingresa nombre o apellido, se guardan como "S/N" (Sin Nombre) o "S/A" (Sin Apellido)
+            final_nombre = nombre if nombre else "S/N"
+            final_apellido = apellido if apellido else "S/A"
+            
             prioridad_detectada = categorizar_con_ia(descripcion)
-            guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, prioridad_detectada)
+            guardar_datos(final_nombre, final_apellido, rut, descripcion, direccion, comuna, prioridad_detectada)
             st.success(f"REGISTRO EXITOSO: {prioridad_detectada}")
         else:
-            st.error("ERROR: Complete los datos.")
+            st.error("ERROR: El RUT y el Relato son campos obligatorios.")
 
 elif opcion == "Panel Administrativo MICC":
     st.write("### Mando Administrativo")

@@ -162,7 +162,8 @@ elif opcion == "Ingresar Requerimiento":
         if rut and descripcion:
             ruta_foto_final = "Sin Registro"
             if foto is not None:
-                ruta_foto_final = os.path.join(CARPETA_RESPALDOS, f"{rut}_{foto.name}")
+                nombre_archivo = f"{rut}_{foto.name}".replace(" ", "_")
+                ruta_foto_final = os.path.join(CARPETA_RESPALDOS, nombre_archivo)
                 with open(ruta_foto_final, "wb") as f:
                     f.write(foto.getbuffer())
             
@@ -181,18 +182,17 @@ elif opcion == "Panel Administrativo MICC":
         if password == CLAVE_ADMIN:
             if os.path.isfile(ARCHIVO_CSV):
                 try:
-                    # Solución al ParserError: Ignora líneas corruptas si las hay
                     df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
                     df_ordenado = df.sort_values(by="Prioridad_IA").reset_index(drop=True)
                     st.dataframe(df_ordenado, use_container_width=True)
                     
                     st.write("### Visor de Evidencias Fotográficas")
                     for index, row in df_ordenado.iterrows():
-                        # Verificamos si la columna existe en el CSV (por si es viejo)
-                        if 'Foto_Evidencia' in row and row['Foto_Evidencia'] != "Sin Registro":
-                            if os.path.exists(str(row['Foto_Evidencia'])):
+                        if 'Foto_Evidencia' in row and str(row['Foto_Evidencia']) != "Sin Registro":
+                            ruta_img = str(row['Foto_Evidencia'])
+                            if os.path.exists(ruta_img):
                                 with st.expander(f"Evidencia: {row['Nombre']} (RUT: {row['RUT']})"):
-                                    st.image(row['Foto_Evidencia'])
+                                    st.image(ruta_img, use_container_width=True)
                 except Exception as e:
                     st.error(f"Error crítico en base de datos: {e}")
             else:

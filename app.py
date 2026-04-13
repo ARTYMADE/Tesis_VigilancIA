@@ -76,7 +76,8 @@ st.markdown("""
 col1, col2 = st.columns([1, 6])
 with col1:
     # Logo de Carabineros
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Logo_de_Carabineros_de_Chile.svg/1024px-Logo_de_Carabineros_de_Chile.svg.png", width=110)
+    url_logo = "https://i.ibb.co/p6S0XmH/Logo-Carabineros.png"
+st.image(url_logo, width=110)
 with col2:
     st.title("VigilancIA Carabineros")
     st.subheader("Plataforma de Integración Comunitaria - Oficina MICC")

@@ -69,7 +69,6 @@ if not os.path.exists(CARPETA_RESPALDOS):
 
 def categorizar_con_ia(texto):
     texto = texto.lower()
-    # Categorías reforzadas con lenguaje coloquial y casos específicos solicitados
     muy_alto = ["arma", "pistola", "disparo", "balacera", "escopeta", "armamento", "fuego", "homicidio", "balazo", "mataron", "disparando"]
     alto = ["droga", "trafico", "pasta base", "marihuana", "venta", "robo", "asalto", "vif", "violencia", "pipa", "bolsa blanca", "transa", "venden"]
     medio = ["luz", "iluminacion", "foco", "oscuro", "sitio eriazo", "eriazo", "plaza", "baldío", "borrachos", "bebiendo", "pelea"]
@@ -84,7 +83,6 @@ def categorizar_con_ia(texto):
     for palabra in bajo:
         if palabra in texto: return "4. BAJO"
     
-    # Detección de "personas malas" o sospechosas como categoría Media por defecto
     if "persona" in texto or "malo" in texto or "sospecho" in texto:
         return "3. MEDIO"
         
@@ -140,7 +138,6 @@ elif opcion == "Ingresar Requerimiento":
 elif opcion == "Panel Administrativo MICC":
     st.write("### Mando Administrativo")
     
-    # Lógica de Autenticación Rígida
     if not st.session_state.get('autenticado'):
         password = st.text_input("CLAVE INSTITUCIONAL", type="password")
         if st.button("INGRESAR AL PANEL"):
@@ -150,7 +147,6 @@ elif opcion == "Panel Administrativo MICC":
             else:
                 st.error("Clave Incorrecta.")
     
-    # Contenido visible SOLO tras autenticación
     if st.session_state.get('autenticado'):
         col_logout = st.columns([5, 1])
         with col_logout[1]:
@@ -164,6 +160,10 @@ elif opcion == "Panel Administrativo MICC":
             if os.path.exists(ARCHIVO_CSV):
                 df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
                 if not df.empty:
+                    # --- LÓGICA DE PRIORIZACIÓN ---
+                    # Ordenamos el DataFrame para que las prioridades 1 y 2 salgan primero
+                    df = df.sort_values(by="Prioridad_IA", ascending=True)
+                    
                     for i, r in df.iterrows():
                         c_info, c_btn = st.columns([5, 1])
                         with c_info:
@@ -171,7 +171,7 @@ elif opcion == "Panel Administrativo MICC":
                             st.info(f"**Requerimiento:** {r['Requerimiento']}")
                         with c_btn:
                             if st.button("SOLUCIONAR", key=f"btn_{r['RUT']}_{i}"):
-                                fila = df.iloc[[i]]
+                                fila = df.loc[[i]]
                                 if not os.path.exists(ARCHIVO_HISTORIAL): fila.to_csv(ARCHIVO_HISTORIAL, index=False)
                                 else: pd.concat([pd.read_csv(ARCHIVO_HISTORIAL), fila]).to_csv(ARCHIVO_HISTORIAL, index=False)
                                 df.drop(i).to_csv(ARCHIVO_CSV, index=False)

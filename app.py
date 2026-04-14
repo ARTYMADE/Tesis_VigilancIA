@@ -94,7 +94,7 @@ def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, priorid
         "Comuna": comuna, "Prioridad_IA": prioridad, "Foto_Evidencia": ruta_foto
     }])
     try:
-        df_existente = conn.read(spreadsheet=URL_PLANILLA, worksheet="Hoja 1")
+        df_existente = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing", worksheet="Hoja 1")
         df_final = pd.concat([df_existente, nuevo_registro], ignore_index=True)
         conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing", worksheet="Hoja 1", data=df_final) # Línea 99 corregida
     except:
@@ -142,7 +142,7 @@ elif opcion == "Panel Administrativo MICC":
     if st.button("INGRESAR AL PANEL"):
         if password == CLAVE_ADMIN:
             try:
-                df = conn.read(spreadsheet=URL_PLANILLA)
+                df = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing")
                 st.dataframe(df.sort_values(by="Prioridad_IA"), use_container_width=True)
                 st.write("### Visor de Evidencias")
                 for index, row in df.iterrows():

@@ -134,28 +134,36 @@ elif opcion == "Panel Administrativo MICC":
     st.write("### Mando Administrativo - Casos Pendientes")
     password = st.text_input("Clave Institucional", type="password")
     if st.button("INGRESAR AL PANEL"):
-        if password == CLAVE_ADMIN:
-            st.session_state['autenticado'] = True
+        if password == CLAVE_ADMIN: st.session_state['autenticado'] = True
         else: st.error("Clave Incorrecta.")
 
     if st.session_state.get('autenticado'):
         if os.path.exists(ARCHIVO_CSV):
             df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
-            st.dataframe(df.sort_values(by="Prioridad_IA"), use_container_width=True)
-            seleccion = st.selectbox("Seleccione RUT para SOLUCIONAR:", df['RUT'].unique())
-            if st.button("MARCAR COMO SOLUCIONADO"):
-                fila = df[df['RUT'] == seleccion]
-                if not os.path.exists(ARCHIVO_HISTORIAL): fila.to_csv(ARCHIVO_HISTORIAL, index=False)
-                else: pd.concat([pd.read_csv(ARCHIVO_HISTORIAL), fila]).to_csv(ARCHIVO_HISTORIAL, index=False)
-                df[df['RUT'] != seleccion].to_csv(ARCHIVO_CSV, index=False); st.rerun()
-            for i, r in df.iterrows():
-                if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
-                    with st.expander(f"Evidencia: {r['RUT']}"): st.image(r['Foto_Evidencia'])
-        else: st.info("Bandeja vacía.")
+            if not df.empty:
+                st.write("---")
+                # Iteración para mostrar cada caso con su botón al lado
+                for i, r in df.iterrows():
+                    c_info, c_btn = st.columns([5, 1])
+                    with c_info:
+                        st.markdown(f"**RUT:** {r['RUT']} | **Prioridad:** {r['Prioridad_IA']} | **Comuna:** {r['Comuna']}")
+                        st.info(f"**Requerimiento:** {r['Requerimiento']}")
+                    with c_btn:
+                        # Botón único por fila usando el RUT como llave
+                        if st.button("SOLUCIONAR", key=f"btn_{r['RUT']}_{i}"):
+                            fila = df[df['RUT'] == r['RUT']]
+                            if not os.path.exists(ARCHIVO_HISTORIAL): fila.to_csv(ARCHIVO_HISTORIAL, index=False)
+                            else: pd.concat([pd.read_csv(ARCHIVO_HISTORIAL), fila]).to_csv(ARCHIVO_HISTORIAL, index=False)
+                            df.drop(i).to_csv(ARCHIVO_CSV, index=False)
+                            st.rerun()
+                    if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
+                        with st.expander("Ver Evidencia"): st.image(r['Foto_Evidencia'], width=400)
+                    st.divider()
+            else: st.info("Bandeja vacía.")
 
 elif opcion == "Historial de Casos":
     if st.text_input("Clave de Acceso", type="password") == CLAVE_ADMIN:
-        if os.path.exists(ARCHIVO_HISTORIAL): st.dataframe(pd.read_csv(ARCHIVO_HISTORIAL))
+        if os.path.exists(ARCHIVO_HISTORIAL): st.dataframe(pd.read_csv(ARCHIVO_HISTORIAL), use_container_width=True)
         else: st.info("Sin historial.")
 
 st.markdown('<div class="footer">App desarrollada solo con fines academicos, y funciona como Beta</div>', unsafe_allow_html=True)

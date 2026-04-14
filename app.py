@@ -132,14 +132,23 @@ elif opcion == "Ingresar Requerimiento":
 
 elif opcion == "Panel Administrativo MICC":
     st.write("### Mando Administrativo")
-    password = st.text_input("Clave Institucional", type="password")
     
-    if st.button("INGRESAR AL PANEL"):
-        if password == CLAVE_ADMIN: st.session_state['autenticado'] = True
-        else: st.error("Clave Incorrecta.")
-
+    # Solo mostrar login si no está autenticado
+    if not st.session_state.get('autenticado'):
+        password = st.text_input("CLAVE INSTITUCIONAL", type="password")
+        if st.button("INGRESAR AL PANEL"):
+            if password == CLAVE_ADMIN:
+                st.session_state['autenticado'] = True
+                st.rerun() # Refrescar para ocultar el login e ingresar
+            else:
+                st.error("Clave Incorrecta.")
+    
+    # Si ya está autenticado, mostrar la información
     if st.session_state.get('autenticado'):
-        # Creación de dos pestañas para separar Casos Pendientes de Historial
+        if st.button("CERRAR SESIÓN"):
+            st.session_state['autenticado'] = False
+            st.rerun()
+
         tab_pendientes, tab_historial = st.tabs(["📋 CASOS CIUDADANOS", "✅ HISTORIAL SOLUCIONADOS"])
         
         with tab_pendientes:
@@ -157,25 +166,26 @@ elif opcion == "Panel Administrativo MICC":
                                 if not os.path.exists(ARCHIVO_HISTORIAL): fila.to_csv(ARCHIVO_HISTORIAL, index=False)
                                 else: pd.concat([pd.read_csv(ARCHIVO_HISTORIAL), fila]).to_csv(ARCHIVO_HISTORIAL, index=False)
                                 df.drop(i).to_csv(ARCHIVO_CSV, index=False)
+                                st.success("Caso movido al historial.")
                                 st.rerun()
                         if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
                             with st.expander("Ver Evidencia"): st.image(r['Foto_Evidencia'], width=400)
                         st.divider()
-                else: st.info("No hay casos pendientes ingresados.")
-            else: st.info("Bandeja vacía.")
+                else: st.info("No hay casos pendientes.")
+            else: st.info("Archivo de datos no encontrado.")
 
         with tab_historial:
             if os.path.exists(ARCHIVO_HISTORIAL):
                 df_hist = pd.read_csv(ARCHIVO_HISTORIAL)
-                st.write("### Registro Histórico de Casos Solucionados")
+                st.write("### Registro Histórico")
                 st.dataframe(df_hist, use_container_width=True)
-                # También permite ver las fotos en el historial
                 for i, r in df_hist.iterrows():
-                    with st.expander(f"Ver Detalle y Respaldo: {r['RUT']}"):
+                    with st.expander(f"Detalle Caso: {r['RUT']} - {r['Prioridad_IA']}"):
+                        st.write(f"**Ubicación:** {r['Direccion']}, {r['Comuna']}")
                         st.write(f"**Relato:** {r['Requerimiento']}")
                         if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
                             st.image(r['Foto_Evidencia'], width=300)
             else:
-                st.info("Aún no existen casos en el registro histórico.")
+                st.info("Sin registros históricos aún.")
 
 st.markdown('<div class="footer">App desarrollada solo con fines academicos, y funciona como Beta</div>', unsafe_allow_html=True)

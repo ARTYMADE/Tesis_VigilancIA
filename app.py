@@ -96,9 +96,9 @@ def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, priorid
     try:
         df_existente = conn.read(spreadsheet=URL_PLANILLA, worksheet="Hoja 1")
         df_final = pd.concat([df_existente, nuevo_registro], ignore_index=True)
-        conn.update(spreadsheet=https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing, worksheet="Hoja 1", data=df_final) # Línea 99 corregida
+        conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing", worksheet="Hoja 1", data=df_final) # Línea 99 corregida
     except:
-        conn.update(spreadsheet=https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing, worksheet="Hoja 1", data=nuevo_registro) # Línea 101 corregida
+        conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing", worksheet="Hoja 1", data=nuevo_registro) # Línea 101 corregida
 
 # --- INTERFAZ ---
 st.sidebar.markdown("<h2 style='color:#D4AF37; text-align:center;'>CONTROL MICC</h2>", unsafe_allow_html=True)

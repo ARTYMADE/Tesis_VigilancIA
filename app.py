@@ -69,10 +69,12 @@ if not os.path.exists(CARPETA_RESPALDOS):
 
 def categorizar_con_ia(texto):
     texto = texto.lower()
-    muy_alto = ["arma", "pistola", "disparo", "balacera", "escopeta", "armamento", "fuego", "homicidio"]
-    alto = ["droga", "trafico", "pasta base", "marihuana", "venta", "robo", "asalto", "vif", "violencia"]
-    medio = ["luz", "iluminacion", "foco", "oscuro", "sitio eriazo", "eriazo", "plaza", "baldío"]
-    bajo = ["basura", "perro", "escombros", "ruido", "feria", "patente"]
+    # Categorías reforzadas con lenguaje coloquial y casos específicos solicitados
+    muy_alto = ["arma", "pistola", "disparo", "balacera", "escopeta", "armamento", "fuego", "homicidio", "balazo", "mataron", "disparando"]
+    alto = ["droga", "trafico", "pasta base", "marihuana", "venta", "robo", "asalto", "vif", "violencia", "pipa", "bolsa blanca", "transa", "venden"]
+    medio = ["luz", "iluminacion", "foco", "oscuro", "sitio eriazo", "eriazo", "plaza", "baldío", "borrachos", "bebiendo", "pelea"]
+    bajo = ["basura", "perro", "escombros", "ruido", "feria", "patente", "abandonado", "vehiculo", "auto", "chatarra", "vereda"]
+    
     for palabra in muy_alto:
         if palabra in texto: return "1. MUY ALTO"
     for palabra in alto:
@@ -81,6 +83,11 @@ def categorizar_con_ia(texto):
         if palabra in texto: return "3. MEDIO"
     for palabra in bajo:
         if palabra in texto: return "4. BAJO"
+    
+    # Detección de "personas malas" o sospechosas como categoría Media por defecto
+    if "persona" in texto or "malo" in texto or "sospecho" in texto:
+        return "3. MEDIO"
+        
     return "5. SIN CATEGORIZAR"
 
 def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, prioridad, ruta_foto):
@@ -133,21 +140,23 @@ elif opcion == "Ingresar Requerimiento":
 elif opcion == "Panel Administrativo MICC":
     st.write("### Mando Administrativo")
     
-    # Solo mostrar login si no está autenticado
+    # Lógica de Autenticación Rígida
     if not st.session_state.get('autenticado'):
         password = st.text_input("CLAVE INSTITUCIONAL", type="password")
         if st.button("INGRESAR AL PANEL"):
             if password == CLAVE_ADMIN:
                 st.session_state['autenticado'] = True
-                st.rerun() # Refrescar para ocultar el login e ingresar
+                st.rerun()
             else:
                 st.error("Clave Incorrecta.")
     
-    # Si ya está autenticado, mostrar la información
+    # Contenido visible SOLO tras autenticación
     if st.session_state.get('autenticado'):
-        if st.button("CERRAR SESIÓN"):
-            st.session_state['autenticado'] = False
-            st.rerun()
+        col_logout = st.columns([5, 1])
+        with col_logout[1]:
+            if st.button("CERRAR SESIÓN"):
+                st.session_state['autenticado'] = False
+                st.rerun()
 
         tab_pendientes, tab_historial = st.tabs(["📋 CASOS CIUDADANOS", "✅ HISTORIAL SOLUCIONADOS"])
         
@@ -166,26 +175,22 @@ elif opcion == "Panel Administrativo MICC":
                                 if not os.path.exists(ARCHIVO_HISTORIAL): fila.to_csv(ARCHIVO_HISTORIAL, index=False)
                                 else: pd.concat([pd.read_csv(ARCHIVO_HISTORIAL), fila]).to_csv(ARCHIVO_HISTORIAL, index=False)
                                 df.drop(i).to_csv(ARCHIVO_CSV, index=False)
-                                st.success("Caso movido al historial.")
                                 st.rerun()
                         if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
                             with st.expander("Ver Evidencia"): st.image(r['Foto_Evidencia'], width=400)
                         st.divider()
                 else: st.info("No hay casos pendientes.")
-            else: st.info("Archivo de datos no encontrado.")
+            else: st.info("Bandeja vacía.")
 
         with tab_historial:
             if os.path.exists(ARCHIVO_HISTORIAL):
                 df_hist = pd.read_csv(ARCHIVO_HISTORIAL)
-                st.write("### Registro Histórico")
                 st.dataframe(df_hist, use_container_width=True)
                 for i, r in df_hist.iterrows():
-                    with st.expander(f"Detalle Caso: {r['RUT']} - {r['Prioridad_IA']}"):
-                        st.write(f"**Ubicación:** {r['Direccion']}, {r['Comuna']}")
+                    with st.expander(f"Detalle: {r['RUT']} - {r['Prioridad_IA']}"):
                         st.write(f"**Relato:** {r['Requerimiento']}")
                         if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
                             st.image(r['Foto_Evidencia'], width=300)
-            else:
-                st.info("Sin registros históricos aún.")
+            else: st.info("Sin registros históricos.")
 
 st.markdown('<div class="footer">App desarrollada solo con fines academicos, y funciona como Beta</div>', unsafe_allow_html=True)

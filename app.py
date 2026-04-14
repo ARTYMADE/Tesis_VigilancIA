@@ -100,7 +100,7 @@ def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, priorid
 
 # --- INTERFAZ ---
 st.sidebar.markdown("<h2 style='color:#D4AF37; text-align:center;'>CONTROL MICC</h2>", unsafe_allow_html=True)
-menu = ["Inicio", "Ingresar Requerimiento", "Panel Administrativo MICC", "Historial de Casos"]
+menu = ["Inicio", "Ingresar Requerimiento", "Panel Administrativo MICC"]
 opcion = st.sidebar.selectbox("Seleccione Función:", menu)
 
 if opcion == "Inicio":
@@ -131,39 +131,51 @@ elif opcion == "Ingresar Requerimiento":
         else: st.error("ERROR: RUT y Relato son obligatorios.")
 
 elif opcion == "Panel Administrativo MICC":
-    st.write("### Mando Administrativo - Casos Pendientes")
+    st.write("### Mando Administrativo")
     password = st.text_input("Clave Institucional", type="password")
+    
     if st.button("INGRESAR AL PANEL"):
         if password == CLAVE_ADMIN: st.session_state['autenticado'] = True
         else: st.error("Clave Incorrecta.")
 
     if st.session_state.get('autenticado'):
-        if os.path.exists(ARCHIVO_CSV):
-            df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
-            if not df.empty:
-                st.write("---")
-                # Iteración para mostrar cada caso con su botón al lado
-                for i, r in df.iterrows():
-                    c_info, c_btn = st.columns([5, 1])
-                    with c_info:
-                        st.markdown(f"**RUT:** {r['RUT']} | **Prioridad:** {r['Prioridad_IA']} | **Comuna:** {r['Comuna']}")
-                        st.info(f"**Requerimiento:** {r['Requerimiento']}")
-                    with c_btn:
-                        # Botón único por fila usando el RUT como llave
-                        if st.button("SOLUCIONAR", key=f"btn_{r['RUT']}_{i}"):
-                            fila = df[df['RUT'] == r['RUT']]
-                            if not os.path.exists(ARCHIVO_HISTORIAL): fila.to_csv(ARCHIVO_HISTORIAL, index=False)
-                            else: pd.concat([pd.read_csv(ARCHIVO_HISTORIAL), fila]).to_csv(ARCHIVO_HISTORIAL, index=False)
-                            df.drop(i).to_csv(ARCHIVO_CSV, index=False)
-                            st.rerun()
-                    if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
-                        with st.expander("Ver Evidencia"): st.image(r['Foto_Evidencia'], width=400)
-                    st.divider()
+        # Creación de dos pestañas para separar Casos Pendientes de Historial
+        tab_pendientes, tab_historial = st.tabs(["📋 CASOS CIUDADANOS", "✅ HISTORIAL SOLUCIONADOS"])
+        
+        with tab_pendientes:
+            if os.path.exists(ARCHIVO_CSV):
+                df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
+                if not df.empty:
+                    for i, r in df.iterrows():
+                        c_info, c_btn = st.columns([5, 1])
+                        with c_info:
+                            st.markdown(f"**RUT:** {r['RUT']} | **Prioridad:** {r['Prioridad_IA']} | **Comuna:** {r['Comuna']}")
+                            st.info(f"**Requerimiento:** {r['Requerimiento']}")
+                        with c_btn:
+                            if st.button("SOLUCIONAR", key=f"btn_{r['RUT']}_{i}"):
+                                fila = df.iloc[[i]]
+                                if not os.path.exists(ARCHIVO_HISTORIAL): fila.to_csv(ARCHIVO_HISTORIAL, index=False)
+                                else: pd.concat([pd.read_csv(ARCHIVO_HISTORIAL), fila]).to_csv(ARCHIVO_HISTORIAL, index=False)
+                                df.drop(i).to_csv(ARCHIVO_CSV, index=False)
+                                st.rerun()
+                        if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
+                            with st.expander("Ver Evidencia"): st.image(r['Foto_Evidencia'], width=400)
+                        st.divider()
+                else: st.info("No hay casos pendientes ingresados.")
             else: st.info("Bandeja vacía.")
 
-elif opcion == "Historial de Casos":
-    if st.text_input("Clave de Acceso", type="password") == CLAVE_ADMIN:
-        if os.path.exists(ARCHIVO_HISTORIAL): st.dataframe(pd.read_csv(ARCHIVO_HISTORIAL), use_container_width=True)
-        else: st.info("Sin historial.")
+        with tab_historial:
+            if os.path.exists(ARCHIVO_HISTORIAL):
+                df_hist = pd.read_csv(ARCHIVO_HISTORIAL)
+                st.write("### Registro Histórico de Casos Solucionados")
+                st.dataframe(df_hist, use_container_width=True)
+                # También permite ver las fotos en el historial
+                for i, r in df_hist.iterrows():
+                    with st.expander(f"Ver Detalle y Respaldo: {r['RUT']}"):
+                        st.write(f"**Relato:** {r['Requerimiento']}")
+                        if str(r['Foto_Evidencia']) != "Sin Registro" and os.path.exists(str(r['Foto_Evidencia'])):
+                            st.image(r['Foto_Evidencia'], width=300)
+            else:
+                st.info("Aún no existen casos en el registro histórico.")
 
 st.markdown('<div class="footer">App desarrollada solo con fines academicos, y funciona como Beta</div>', unsafe_allow_html=True)

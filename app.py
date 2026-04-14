@@ -62,6 +62,7 @@ st.divider()
 CLAVE_ADMIN = "MICC2026" 
 CARPETA_RESPALDOS = "respaldos"
 ARCHIVO_CSV = "datos_micc.csv"
+ARCHIVO_HISTORIAL = "historial_solucionados.csv"
 
 if not os.path.exists(CARPETA_RESPALDOS):
     os.makedirs(CARPETA_RESPALDOS)
@@ -98,12 +99,11 @@ def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, priorid
             df_final = pd.concat([df_existente, df_nuevo], ignore_index=True)
             df_final.to_csv(ARCHIVO_CSV, index=False, encoding="utf-8")
         except:
-            # Si el CSV está corrupto, lo sobreescribimos con el nuevo dato para repararlo
             df_nuevo.to_csv(ARCHIVO_CSV, index=False, encoding="utf-8")
 
 # --- INTERFAZ ---
 st.sidebar.markdown("<h2 style='color:#D4AF37; text-align:center;'>CONTROL MICC</h2>", unsafe_allow_html=True)
-menu = ["Inicio", "Ingresar Requerimiento", "Panel Administrativo MICC"]
+menu = ["Inicio", "Ingresar Requerimiento", "Panel Administrativo MICC", "Historial Solucionados"]
 opcion = st.sidebar.selectbox("Seleccione Función:", menu)
 
 if opcion == "Inicio":
@@ -138,26 +138,65 @@ elif opcion == "Ingresar Requerimiento":
             st.error("ERROR: RUT y Relato son obligatorios.")
 
 elif opcion == "Panel Administrativo MICC":
-    st.write("### Mando Administrativo")
+    st.write("### Mando Administrativo - Casos Pendientes")
     password = st.text_input("Clave Institucional", type="password")
     if st.button("INGRESAR AL PANEL"):
-        if password == CLAVE_ADMIN:
-            if os.path.exists(ARCHIVO_CSV):
-                try:
-                    df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
-                    st.dataframe(df.sort_values(by="Prioridad_IA"), use_container_width=True)
-                    st.write("### Visor de Evidencias")
-                    for index, row in df.iterrows():
-                        if 'Foto_Evidencia' in df.columns and str(row['Foto_Evidencia']) != "Sin Registro":
-                            if os.path.exists(str(row['Foto_Evidencia'])):
-                                with st.expander(f"Evidencia: {row['RUT']}"):
-                                    st.image(row['Foto_Evidencia'])
-                except Exception as e:
-                    st.error(f"Error al leer el historial: {e}")
+        st.session_state['admin_auth'] = (password == CLAVE_ADMIN)
+    
+    if st.session_state.get('admin_auth'):
+        if os.path.exists(ARCHIVO_CSV):
+            df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
+            if not df.empty:
+                st.dataframe(df.sort_values(by="Prioridad_IA"), use_container_width=True)
+                
+                st.write("---")
+                st.write("### Gestión de Casos")
+                # Selección de caso por RUT para solucionar
+                ruts_pendientes = df['RUT'].unique()
+                seleccion = st.selectbox("Seleccione RUT del caso a SOLUCIONAR:", ruts_pendientes)
+                
+                if st.button("MARCAR COMO SOLUCIONADO"):
+                    # 1. Separar el registro solucionado
+                    fila_solucionada = df[df['RUT'] == seleccion]
+                    df_restante = df[df['RUT'] != seleccion]
+                    
+                    # 2. Guardar en el Historial
+                    if not os.path.exists(ARCHIVO_HISTORIAL):
+                        fila_solucionada.to_csv(ARCHIVO_HISTORIAL, index=False, encoding="utf-8")
+                    else:
+                        historial_previo = pd.read_csv(ARCHIVO_HISTORIAL, encoding="utf-8")
+                        pd.concat([historial_previo, fila_solucionada], ignore_index=True).to_csv(ARCHIVO_HISTORIAL, index=False, encoding="utf-8")
+                    
+                    # 3. Actualizar el archivo principal (Pendientes)
+                    df_restante.to_csv(ARCHIVO_CSV, index=False, encoding="utf-8")
+                    st.success(f"Caso {seleccion} movido al Historial de Solucionados.")
+                    st.rerun()
+
+                st.write("### Visor de Evidencias Pendientes")
+                for index, row in df.iterrows():
+                    if 'Foto_Evidencia' in df.columns and str(row['Foto_Evidencia']) != "Sin Registro":
+                        if os.path.exists(str(row['Foto_Evidencia'])):
+                            with st.expander(f"Evidencia: {row['RUT']} - {row['Prioridad_IA']}"):
+                                st.image(row['Foto_Evidencia'])
             else:
-                st.info("No hay registros guardados todavía.")
+                st.info("No hay casos pendientes en la bandeja de entrada.")
         else:
-            st.error("Clave Incorrecta.")
+            st.info("No hay registros guardados todavía.")
+    elif 'admin_auth' in st.session_state and not st.session_state['admin_auth']:
+        st.error("Clave Incorrecta.")
+
+elif opcion == "Historial Solucionados":
+    st.write("### Historial de Casos Finalizados")
+    password = st.text_input("Clave de Acceso Historial", type="password")
+    if password == CLAVE_ADMIN:
+        if os.path.exists(ARCHIVO_HISTORIAL):
+            df_hist = pd.read_csv(ARCHIVO_HISTORIAL, encoding="utf-8")
+            st.success(f"Total de casos solucionados a la fecha: {len(df_hist)}")
+            st.dataframe(df_hist, use_container_width=True)
+        else:
+            st.info("Aún no hay casos marcados como solucionados.")
+    elif password:
+        st.error("Clave Incorrecta.")
 
 # --- 4. FOOTER ---
 st.markdown('<div class="footer">App desarrollada solo con fines academicos, y funciona como Beta</div>', unsafe_allow_html=True)

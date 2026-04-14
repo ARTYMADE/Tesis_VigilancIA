@@ -62,9 +62,10 @@ st.divider()
 # --- LÓGICA FUNCIONAL (CONEXIÓN GOOGLE SHEETS) ---
 CLAVE_ADMIN = "MICC2026" 
 CARPETA_RESPALDOS = "respaldos"
-URL_PLANILLA = "https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?gid=0#gid=0"
+# URL unificada para evitar errores de sintaxis
+URL_PLANILLA = "https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing"
 
-# Crear carpeta de fotos si no existe para la sesión actual
+# Crear carpeta de fotos si no existe
 if not os.path.exists(CARPETA_RESPALDOS):
     os.makedirs(CARPETA_RESPALDOS)
 
@@ -94,11 +95,12 @@ def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, priorid
         "Comuna": comuna, "Prioridad_IA": prioridad, "Foto_Evidencia": ruta_foto
     }])
     try:
-        df_existente = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing", worksheet="Hoja 1")
+        # Se especifica "Hoja 1" para coincidir con tu Google Sheets
+        df_existente = conn.read(spreadsheet=URL_PLANILLA, worksheet="Hoja 1")
         df_final = pd.concat([df_existente, nuevo_registro], ignore_index=True)
-        conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing", worksheet="Hoja 1", data=df_final) # Línea 99 corregida
+        conn.update(spreadsheet=URL_PLANILLA, worksheet="Hoja 1", data=df_final)
     except:
-        conn.update(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing", worksheet="Hoja 1", data=nuevo_registro) # Línea 101 corregida
+        conn.update(spreadsheet=URL_PLANILLA, worksheet="Hoja 1", data=nuevo_registro)
 
 # --- INTERFAZ ---
 st.sidebar.markdown("<h2 style='color:#D4AF37; text-align:center;'>CONTROL MICC</h2>", unsafe_allow_html=True)
@@ -142,7 +144,8 @@ elif opcion == "Panel Administrativo MICC":
     if st.button("INGRESAR AL PANEL"):
         if password == CLAVE_ADMIN:
             try:
-                df = conn.read(spreadsheet="https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing")
+                # Lectura optimizada usando la variable URL y el nombre de la hoja
+                df = conn.read(spreadsheet=URL_PLANILLA, worksheet="Hoja 1")
                 st.dataframe(df.sort_values(by="Prioridad_IA"), use_container_width=True)
                 st.write("### Visor de Evidencias")
                 for index, row in df.iterrows():

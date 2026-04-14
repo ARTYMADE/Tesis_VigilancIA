@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import os
-from streamlit_gsheets import GSheetsConnection
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
@@ -59,18 +58,13 @@ with col2:
 
 st.divider()
 
-# --- LÓGICA FUNCIONAL (CONEXIÓN GOOGLE SHEETS) ---
+# --- LÓGICA FUNCIONAL (SISTEMA LOCAL CSV) ---
 CLAVE_ADMIN = "MICC2026" 
 CARPETA_RESPALDOS = "respaldos"
-# URL unificada para evitar errores de sintaxis
-URL_PLANILLA = "https://docs.google.com/spreadsheets/d/16lLBrbvViyNMa6cQFQgDqr6UP5He0NhG40YslkSSoVg/edit?usp=sharing"
+ARCHIVO_CSV = "datos_micc.csv"
 
-# Crear carpeta de fotos si no existe
 if not os.path.exists(CARPETA_RESPALDOS):
     os.makedirs(CARPETA_RESPALDOS)
-
-# Conexión con la nube
-conn = st.connection("gsheets", type=GSheetsConnection)
 
 def categorizar_con_ia(texto):
     texto = texto.lower()
@@ -89,18 +83,23 @@ def categorizar_con_ia(texto):
     return "5. SIN CATEGORIZAR"
 
 def guardar_datos(nombre, apellido, rut, descripcion, direccion, comuna, prioridad, ruta_foto):
-    nuevo_registro = pd.DataFrame([{
-        "Nombre": nombre, "Apellido": apellido, "RUT": rut,
-        "Requerimiento": descripcion, "Direccion": direccion,
-        "Comuna": comuna, "Prioridad_IA": prioridad, "Foto_Evidencia": ruta_foto
-    }])
-    try:
-        # Se especifica "Hoja 1" para coincidir con tu Google Sheets
-        df_existente = conn.read(spreadsheet=URL_PLANILLA, worksheet="Hoja 1")
-        df_final = pd.concat([df_existente, nuevo_registro], ignore_index=True)
-        conn.update(spreadsheet=URL_PLANILLA, worksheet="Hoja 1", data=df_final)
-    except:
-        conn.update(spreadsheet=URL_PLANILLA, worksheet="Hoja 1", data=nuevo_registro)
+    nuevo_registro = {
+        "Nombre": [nombre], "Apellido": [apellido], "RUT": [rut],
+        "Requerimiento": [descripcion], "Direccion": [direccion],
+        "Comuna": [comuna], "Prioridad_IA": [prioridad], "Foto_Evidencia": [ruta_foto]
+    }
+    df_nuevo = pd.DataFrame(nuevo_registro)
+    
+    if not os.path.exists(ARCHIVO_CSV):
+        df_nuevo.to_csv(ARCHIVO_CSV, index=False, encoding="utf-8")
+    else:
+        try:
+            df_existente = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
+            df_final = pd.concat([df_existente, df_nuevo], ignore_index=True)
+            df_final.to_csv(ARCHIVO_CSV, index=False, encoding="utf-8")
+        except:
+            # Si el CSV está corrupto, lo sobreescribimos con el nuevo dato para repararlo
+            df_nuevo.to_csv(ARCHIVO_CSV, index=False, encoding="utf-8")
 
 # --- INTERFAZ ---
 st.sidebar.markdown("<h2 style='color:#D4AF37; text-align:center;'>CONTROL MICC</h2>", unsafe_allow_html=True)
@@ -109,7 +108,7 @@ opcion = st.sidebar.selectbox("Seleccione Función:", menu)
 
 if opcion == "Inicio":
     st.write("### Bienvenido al Sistema de Gestión Territorial")
-    st.markdown('<div style="background-color: #002D20; padding: 20px; border-radius: 10px; border: 1px solid #D4AF37;">Terminal de procesamiento de datos modelo MICC. Conectado a la nube.</div>', unsafe_allow_html=True)
+    st.markdown('<div style="background-color: #002D20; padding: 20px; border-radius: 10px; border: 1px solid #D4AF37;">Terminal de procesamiento de datos modelo MICC. Almacenamiento Local Activo.</div>', unsafe_allow_html=True)
 
 elif opcion == "Ingresar Requerimiento":
     st.write("### Formulario Institucional")
@@ -134,7 +133,7 @@ elif opcion == "Ingresar Requerimiento":
                     f.write(foto.getbuffer())
             prioridad = categorizar_con_ia(descripcion)
             guardar_datos(nombre or "S/N", apellido or "S/A", rut, descripcion, direccion, comuna, prioridad, ruta_foto_final)
-            st.success(f"REGISTRO EXITOSO: {prioridad}")
+            st.success(f"REGISTRO GUARDADO LOCALMENTE: {prioridad}")
         else:
             st.error("ERROR: RUT y Relato son obligatorios.")
 
@@ -143,18 +142,20 @@ elif opcion == "Panel Administrativo MICC":
     password = st.text_input("Clave Institucional", type="password")
     if st.button("INGRESAR AL PANEL"):
         if password == CLAVE_ADMIN:
-            try:
-                # Lectura optimizada usando la variable URL y el nombre de la hoja
-                df = conn.read(spreadsheet=URL_PLANILLA, worksheet="Hoja 1")
-                st.dataframe(df.sort_values(by="Prioridad_IA"), use_container_width=True)
-                st.write("### Visor de Evidencias")
-                for index, row in df.iterrows():
-                    if 'Foto_Evidencia' in df.columns and str(row['Foto_Evidencia']) != "Sin Registro":
-                        if os.path.exists(str(row['Foto_Evidencia'])):
-                            with st.expander(f"Evidencia: {row['RUT']}"):
-                                st.image(row['Foto_Evidencia'])
-            except Exception as e:
-                st.error(f"Error al cargar datos o visor: {e}")
+            if os.path.exists(ARCHIVO_CSV):
+                try:
+                    df = pd.read_csv(ARCHIVO_CSV, on_bad_lines='skip', encoding="utf-8")
+                    st.dataframe(df.sort_values(by="Prioridad_IA"), use_container_width=True)
+                    st.write("### Visor de Evidencias")
+                    for index, row in df.iterrows():
+                        if 'Foto_Evidencia' in df.columns and str(row['Foto_Evidencia']) != "Sin Registro":
+                            if os.path.exists(str(row['Foto_Evidencia'])):
+                                with st.expander(f"Evidencia: {row['RUT']}"):
+                                    st.image(row['Foto_Evidencia'])
+                except Exception as e:
+                    st.error(f"Error al leer el historial: {e}")
+            else:
+                st.info("No hay registros guardados todavía.")
         else:
             st.error("Clave Incorrecta.")
 
